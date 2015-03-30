@@ -3,21 +3,27 @@ var mongoose = require('mongoose');
 
 var auth = require('./auth.json');
 
-var logging = false;
-var consoleLogging = false;
+// parse argv
+var argv = {};
+process.argv.forEach(function (val, index, array) {
+  if (val[0] === '-') {
+    var i = val.indexOf('=');
+    if (~i) {
+      argv[val.slice(0, i)] = val.slice(i);
+    } else {
+      argv[val] = true;
+    }
+  }
+
+});
+var logging = argv['-log'];
+var consoleLogging = argv['-console'];
+var chatMessageLogging = argv['-chat'];
 var fs = require('fs');
 
-// parse argv
-process.argv.forEach(function (val, index, array) {
-  if (val === 'log') {
-    logging = true;
-    console.log("file logging  turned on");
-  }
-  if (val === 'consoleLogging') {
-    consoleLogging = true;
-    console.log("console logging  turned on");
-  }
-});
+console.log(logging);
+console.log(consoleLogging);
+console.log(chatMessageLogging);
 
 var url = auth.mongolab.url
 .replace('<dbuser>', auth.mongolab.dbuser)
@@ -103,7 +109,10 @@ function handleMessage (client, msg) {
         var channel = msg.params.slice(0, chatMessageIndexOf);
         var chatMessage = msg.params.slice(chatMessageIndexOf + 1);
         var user = msg.prefix.user.slice(1);
-        console.log(user + ": " + chatMessage);
+
+        if (chatMessageLogging) {
+          console.log(user + ": " + chatMessage);
+        }
       break;
   }
 }
