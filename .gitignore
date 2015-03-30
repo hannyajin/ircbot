@@ -2,3 +2,5 @@ node_modules/
 *.SWP
 *.DS_STORE
 auth.json
+irclog.txt
+
