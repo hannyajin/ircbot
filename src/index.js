@@ -27,8 +27,10 @@ console.log(chatMessageLogging);
 console.log("db: " + argv['-db']);
 
 var url = auth.mongolab.url
-.replace('<dbuser>', auth.mongolab.dbuser)
-.replace('<dbpassword>', auth.mongolab.dbpassword);
+.replace('<dbuser>', auth.mongolab.admin.dbuser)
+.replace('<dbpassword>', auth.mongolab.admin.dbpassword);
+
+var channel = "totalbiscuit";
 
 // init database
 var db = mongoose.connect(url).connection;
@@ -36,6 +38,7 @@ var db = mongoose.connect(url).connection;
 var Schema = mongoose.Schema;
 var ChatMessage = mongoose.model('ChatMessage', mongoose.Schema({
   _id: { type: Schema.ObjectId, auto: true },
+  channel: String,
   user: String,
   message: String
 }));
@@ -55,7 +58,6 @@ db.once('open', function () {
     client.write("PASS " + auth.oauth + "\n");
     client.write("NICK " + auth.nick + "\n");
 
-    var channel = "jcarverpoker";
     client.write("JOIN #"+channel+"\n");
   });
 
@@ -142,8 +144,8 @@ function handleMessage (client, msg) {
         if (argv['-db']) {
           // save to mongodb
           var cm = new ChatMessage({
-            user: user,
             channel: channel,
+            user: user,
             message: chatMessage
           });
           cm.save(function (err, doc) {

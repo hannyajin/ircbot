@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ircbot Client App</title>
+    <!-- css normaliser -->
+    <link href="//cdnjs.cloudflare.com/ajax/libs/normalize/3.0.3/normalize.min.css" rel="stylesheet">
+    <!-- skeleton css framework -->
+    <link href="//cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" rel="stylesheet">
+    <!-- custom css -->
+    <link href="css/main.css" rel="stylesheet">
+    <style type="text/css">
+      html, body {
+        background-color: #222;
+        color: #eee;
+      }
+      ul, ol, li {
+        list-style: none;
+      }
+    </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Hello World</h1>
+    <ul id="list">
+
+    </ul>
+  </div>
+
+  <!-- scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="text/javascript">
+    var socket = io();
+    var ul = document.getElementById('list');
+
+    socket.on('recent history', function(list) {
+      // sent when user connects to the server
+      console.log("Got recent history");
+      ul.innerHTML = ''; // empty list
+      addEntries(list);
+    });
+
+    socket.on('new batch', function (batch) {
+      console.log("Got new entries");
+      addEntries(batch);
+    });
+
+    function addEntries(list) {
+      for (var i = 0; i < list.length; i++) {
+        var item = list[i];
+        var li = document.createElement('li');
+        li.innerHTML = item.user + ": " + item.message;
+        ul.appendChild(li);
+      }
+    }
+  </script>
+  <script src="js/main.js" type="text/javascript"></script>
+</body>
+</html>
