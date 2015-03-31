@@ -14,8 +14,8 @@ process.argv.forEach(function (val, index, array) {
       argv[val] = true;
     }
   }
-
 });
+
 var logging = argv['-log'];
 var consoleLogging = argv['-console'];
 var chatMessageLogging = argv['-chat'];
@@ -24,12 +24,21 @@ var fs = require('fs');
 console.log(logging);
 console.log(consoleLogging);
 console.log(chatMessageLogging);
+console.log("db: " + argv['-db']);
 
 var url = auth.mongolab.url
 .replace('<dbuser>', auth.mongolab.dbuser)
 .replace('<dbpassword>', auth.mongolab.dbpassword);
 
+// init database
 var db = mongoose.connect(url).connection;
+
+var Schema = mongoose.Schema;
+var ChatMessage = mongoose.model('ChatMessage', mongoose.Schema({
+  _id: { type: Schema.ObjectId, auto: true },
+  user: String,
+  message: String
+}));
 
 db.on('error', function (err) {
   console.log("db connection error:" + err.message || err || ' null');
@@ -60,6 +69,8 @@ db.once('open', function () {
     buffer += str;
     var lastNewLine = buffer.lastIndexOf('\n');
     var stub = buffer.substring(0, lastNewLine);
+    // rewind the buffer!!
+    buffer = buffer.substring(lastNewLine);
     var split = stub.split('\n');
     for (i in split) {
       var line = split[i];
@@ -98,6 +109,18 @@ function sysout(msg) {
   console.log();
 }
 
+var saveCount = 0;
+var messagesCount = 0;
+
+function statsOut() {
+  console.log("   =============   ");
+  console.log("     " + saveCount + "/" + messagesCount);
+  console.log("   =============   ");
+
+  setTimeout(statsOut, 30000);
+}
+statsOut();
+
 function handleMessage (client, msg) {
   switch (msg.command.trim()) {
     case 'PING':
@@ -105,6 +128,8 @@ function handleMessage (client, msg) {
         console.log("PONG!\n");
       break;
     case 'PRIVMSG':
+        messagesCount++;
+
         var chatMessageIndexOf = msg.params.indexOf(':');
         var channel = msg.params.slice(0, chatMessageIndexOf);
         var chatMessage = msg.params.slice(chatMessageIndexOf + 1);
@@ -113,6 +138,20 @@ function handleMessage (client, msg) {
         if (chatMessageLogging) {
           console.log(user + ": " + chatMessage);
         }
+
+        if (argv['-db']) {
+          // save to mongodb
+          var cm = new ChatMessage({
+            user: user,
+            channel: channel,
+            message: chatMessage
+          });
+          cm.save(function (err, doc) {
+            if (err) return console.log("error saving to database: " + err);
+            saveCount++;
+          });
+        }
+
       break;
   }
 }
