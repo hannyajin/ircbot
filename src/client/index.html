@@ -9,20 +9,32 @@
     <link href="//cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" rel="stylesheet">
     <!-- custom css -->
     <link href="css/main.css" rel="stylesheet">
+		<link href='http://fonts.googleapis.com/css?family=Ubuntu:300,400,500' rel='stylesheet' type='text/css'>
     <style type="text/css">
       html, body {
+				font-family: 'Ubuntu', sans-serif;
         background-color: #222;
-        color: #eee;
+        color: #ddd;
       }
       ul, ol, li {
         list-style: none;
       }
+			.user {
+				font-weight: 500;
+			}
+			.message {
+				font-weight: lighter;
+			}
+			.twitchnotify > span {
+				font-weight: lighter !important;
+				color: #666 !important;
+			}
     </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>Hello World</h1>
+    <h4>Twitch #totalbiscuit</h4>
     <ul id="list">
 
     </ul>
@@ -30,6 +42,7 @@
 
   <!-- scripts -->
   <script src="/socket.io/socket.io.js"></script>
+  <!--<script src="https://api.twitch.tv/kraken/chat/totalbiscuit/emoticons"></script>-->
   <script type="text/javascript">
     var socket = io();
     var ul = document.getElementById('list');
@@ -46,14 +59,83 @@
       addEntries(batch);
     });
 
+		var stringToColour = function(str) {
+			// str to hash
+			for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
+			// int/hash to hex
+			for (var i = 0, colour = "#"; i < 3; colour += ("00" + ((hash >> i++ * 8) & 0xFF).toString(16)).slice(-2));
+			return colour;
+		}
+
+		var addClass = function (el, cls) {
+			if (el.classList)
+				el.classList.add(cls);
+			else
+				el.className += ' ' + cls;
+		}
+
     function addEntries(list) {
       for (var i = 0; i < list.length; i++) {
         var item = list[i];
         var li = document.createElement('li');
-        li.innerHTML = item.user + ": " + item.message;
+				var user = document.createElement('span');
+				var message = document.createElement('span');
+				user.innerHTML = item.user + ": ";
+
+				addClass(user, 'user');
+
+				// parse for twitchnotify
+				if (item.user === 'twitchnotify') {
+					addClass(li, 'twitchnotify');
+				}
+
+				user.style.color = stringToColour(item.user + ":");
+
+				if (emotes) {
+					// parse message for emotes
+					for (key in emotes.emoticons) {
+						var e = emotes.emoticons[key];
+						var regex = e.regex;
+						var eStr = '<img width="$width" height="$height" src="$url">$regex</img>';
+						eStr = eStr.replace('$width', e.width);
+						eStr = eStr.replace('$height', e.height);
+						eStr = eStr.replace('$url', e.url);
+						eStr = eStr.replace('$regex', '');
+
+						item.message = item.message.replace(regex, eStr);
+					}
+				}
+
+				//console.log(item.message);
+				message.innerHTML = item.message;
+				addClass(message, 'message');
+
+				li.appendChild(user)
+				li.appendChild(message);
         ul.appendChild(li);
+
+				li.scrollIntoView();
       }
     }
+
+		// load channel emoticons
+		var emotes = null;
+		var req = new XMLHttpRequest();
+		req.open('GET', "/emoticons", true);
+		req.onload = function () {
+			if (req.status >= 200 && req.status < 400) {
+				// Success
+				emotes = JSON.parse(req.responseText);
+				console.log(emotes);
+			} else {
+				// Fail
+				console.log("failed to load emotes: " + req.responseText);
+			}
+		};
+		req.onerror = function (err) {
+			console.log("error loading emotes: " + req.responseText);
+		}
+		req.send();
   </script>
   <script src="js/main.js" type="text/javascript"></script>
 </body>

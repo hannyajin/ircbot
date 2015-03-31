@@ -30,6 +30,8 @@ var url = auth.mongolab.url
 .replace('<dbuser>', auth.mongolab.admin.dbuser)
 .replace('<dbpassword>', auth.mongolab.admin.dbpassword);
 
+console.log("mongolab url: " + url);
+
 var channel = "totalbiscuit";
 
 // init database
@@ -48,11 +50,13 @@ db.on('error', function (err) {
 });
 
 db.once('open', function () {
+	console.log("Connected to Database");
   var opts = {port: auth.port, host: auth.host};
+	console.log(opts);
   var client = net.connect(opts);
 
   client.on('connect', function () {
-    console.log("Connected to server!");
+    console.log("Connected to Twitch");
 
     // Send authentication info
     client.write("PASS " + auth.oauth + "\n");
@@ -94,9 +98,12 @@ db.once('open', function () {
     }
   });
 
-  client.on('end', function () {
-    console.log("Disconnected from server");
-    process.exit(1); // exit failure
+  client.on('end', function (err) {
+    console.log("Disconnected from server: " + err);
+		setTimeout(function() {
+			console.log("Process Exit");
+    	process.exit(1); // exit failure
+		}, 5000);
   });
 
 });

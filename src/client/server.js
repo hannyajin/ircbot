@@ -8,6 +8,9 @@ var io = require('socket.io')(server);
 
 var port = process.env.PORT || 40400;
 
+var cache = [];
+var cacheLimit = 30;
+
 var config = {
   pollingInterval: 1000, // 1 second
   limit: 30, // 30 documents per poll
@@ -50,8 +53,11 @@ db.once('open', function () {
     latest = doc;
     console.log("latest entry found: " + doc);
     cache.push(doc); // push it to the cache
-    // start of the scheduled polling
-    setTimeout(getNewEntires, config.pollingInterval);
+
+		getLatestEntries(function() {
+    	// start of the scheduled polling
+    	setTimeout(getNewEntires, config.pollingInterval);
+		});
   });
 
   function getNewEntires() {
@@ -79,14 +85,28 @@ db.once('open', function () {
       });
   };
 
+	// get latest cacheLimit (30) entries to update the cache
+	function getLatestEntries(cb) {
+		ChatMessage
+			.find({})
+			.sort('-_id')
+			.where('_id').lt(latest.id)
+			.limit(config.limit || 30)
+			.exec(function (err, docs) {
+				if (err) {
+					return;
+				}
+				cache = docs.reverse();
+				if ('function' == typeof cb)
+					cb()
+			});
+	}
+
 });
 
-
-var cache = [];
-var cacheLimit = 30;
 function handleNewEntries (docs) {
   cache = cache.concat(docs);
-  cache.length = Math.min(cacheLimit, cache.length);
+	cache = cache.slice(-cacheLimit);
   process.stdout.write(". Building batch..");
 
   if (docs.length > 0) {
@@ -108,6 +128,11 @@ function handleNewEntries (docs) {
 // setup routing
 app.get('/', function (req, res) {
   res.sendFile(__dirname + '/index.html');
+});
+
+var emoticons = require('./emoticons.json');
+app.get('/emoticons', function (req, res) {
+	res.json(emoticons);
 });
 
 // setup web sockets
