@@ -29,12 +29,28 @@
 				font-weight: lighter !important;
 				color: #666 !important;
 			}
+			.status {
+				color: #4a7;
+				background-color: #111;
+				opacity: .5;
+				position: fixed;
+				top: 0px;
+				left: 0px;
+				width: 95px;
+				height: 44px;
+				text-align: center;
+			}
+			#usersOnline {
+			}
     </style>
 </head>
 <body>
 
   <div class="container">
     <h4>Twitch #totalbiscuit</h4>
+		<div class="status">
+			Users online: <span id="usersOnline"><span>
+		</div>
     <ul id="list">
 
     </ul>
@@ -53,6 +69,11 @@
       ul.innerHTML = ''; // empty list
       addEntries(list);
     });
+
+		socket.on('users count', function (usersCount) {
+			var e = document.getElementById('usersOnline');
+			e.innerHTML = usersCount;
+		});
 
     socket.on('new batch', function (batch) {
       console.log("Got new entries");
@@ -102,7 +123,18 @@
 						eStr = eStr.replace('$url', e.url);
 						eStr = eStr.replace('$regex', '');
 
-						item.message = item.message.replace(regex, eStr);
+						var isRegex = (regex.indexOf('\\') == 0)
+													|| (regex.indexOf('[') == 0);
+						var er = regex.replace(/\\/g, '');
+						if (!(~er.indexOf('(') && ~er.indexOf(')'))) {
+							er = er.replace(/(\(|\))/g, '\\$1')
+						}
+						if (isRegex) er = (' ' + er + '( |$)');
+						var s = item.message.replace(new RegExp(er, 'g'), eStr);
+						if (s.length != item.message.length) {
+							item.message = s;
+							break;
+						}
 					}
 				}
 

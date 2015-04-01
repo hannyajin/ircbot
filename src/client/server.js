@@ -9,7 +9,7 @@ var io = require('socket.io')(server);
 var port = process.env.PORT || 40400;
 
 var cache = [];
-var cacheLimit = 30;
+var cacheLimit = 50;
 
 var config = {
   pollingInterval: 1000, // 1 second
@@ -57,6 +57,7 @@ db.once('open', function () {
 		getLatestEntries(function() {
     	// start of the scheduled polling
     	setTimeout(getNewEntires, config.pollingInterval);
+			setTimeout(sendUsersCount, 4000);
 		});
   });
 
@@ -104,6 +105,17 @@ db.once('open', function () {
 
 });
 
+var lastUsersCount = 0;
+function sendUsersCount () {
+	var u = io.engine.clientsCount;
+	if (lastUsersCount != u) {
+		lastUsersCount = u;
+		io.emit('users count', u);
+	}
+
+	setTimeout(sendUsersCount, 4000);
+};
+
 function handleNewEntries (docs) {
   cache = cache.concat(docs);
 	cache = cache.slice(-cacheLimit);
@@ -146,6 +158,7 @@ io.on('connection', function (socket) {
     }
   });
   socket.emit('recent history', list);
+	socket.emit('users count', io.engine.clientsCount);
   process.stdout.write(" > recent history sent [%s]".replace('%s', list.length));
 
   socket.on('disconnect', function () {
